@@ -6,12 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MassTransit" Version="8.5.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Sales.Domain\Sales.Domain.csproj" />
-  </ItemGroup>
-
 </Project>
