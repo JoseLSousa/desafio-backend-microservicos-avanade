@@ -1,0 +1,242 @@
+services:
+  # ========================
+  # Database Services
+  # ========================
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Senhasegura123}
+      POSTGRES_DB: StockDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices_net
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD:-Senhasegura123}
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/opt/mssql-tools/bin/sqlcmd",
+          "-S",
+          "localhost",
+          "-U",
+          "sa",
+          "-P",
+          "${SA_PASSWORD:-Senhasegura123}",
+          "-Q",
+          "SELECT 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices_net
+
+  # ========================
+  # Message Broker
+  # ========================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices_net
+
+  # ========================
+  # Microservices
+  # ========================
+  sales_service:
+    build:
+      context: .
+      dockerfile: Sales.WebAPI/Dockerfile
+    container_name: sales_service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 5001
+      ConnectionStrings__DefaultConnection: >-
+        Server=sqlserver;Database=SalesDb;User Id=sa;
+        Password=${SA_PASSWORD:-Senhasegura123};TrustServerCertificate=true
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: ${RABBITMQ_USER:-guest}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-guest}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    ports:
+        - 5001:5001
+    networks:
+      - microservices_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  stock_service:
+    build:
+      context: .
+      dockerfile: Stock.WebAPI/Dockerfile
+    container_name: stock_service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: 5002
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=StockDb;Username=postgres;
+        Password=${POSTGRES_PASSWORD:-Senhasegura123}
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: ${RABBITMQ_USER:-guest}
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD:-guest}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - microservices_net
+    ports:
+      - 5002:5002
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # ========================
+  # Kong API Gateway (DB-less)
+  # ========================
+  api_gateway:
+    image: kong:3.6
+    container_name: kong
+    depends_on:
+      - sales_service
+      - stock_service
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    ports:
+      - "8000:8000" # API Gateway (proxy)
+      - "8001:8001" # Admin API
+      - "8443:8443" # HTTPS proxy
+      - "8444:8444" # HTTPS Admin API
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml
+    networks:
+      - microservices_net
+
+  # ========================
+  # Observability Stack
+  # ========================
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - microservices_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - microservices_net
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - microservices_net
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./observability/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - microservices_net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./observability/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9464:9464" # Prometheus scrape endpoint
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - microservices_net
+
+# ========================
+# Networks & Volumes
+# ========================
+networks:
+  microservices_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  sqlserver_data:
+  rabbitmq_data:

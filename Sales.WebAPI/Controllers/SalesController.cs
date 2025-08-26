@@ -39,5 +39,11 @@ namespace Sales.WebAPI.Controllers
 
             return Ok(new { SaleId = sale.Id, Status = sale.Status.ToString() });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll(ISaleRepository sale, CancellationToken cancellationToken)
+        {
+            return Ok(await sale.GetAll(cancellationToken));
+        }
     }
 }

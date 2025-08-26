@@ -1,6 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using MassTransit;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Sales.Application.Commands;
 using Sales.Domain.Interfaces;
 using Sales.Infra.Data.Context;
 using Sales.Infra.Data.Repositories;
@@ -20,6 +22,22 @@ namespace Sales.Infra
             services.AddScoped<ISaleRepository, SaleRepository>();
 
             services.AddMassTransitSales(configuration);
+
+            services.AddMediator(cfg =>
+            {
+                cfg.AddConsumers(typeof(ServiceExtensions).Assembly);
+                cfg.AddConsumers(typeof(CreateSaleHandler).Assembly);
+            });
+
+            // Verify MassTransit IBus registration
+            services.AddOptions<MassTransitHostOptions>()
+                .Configure(options =>
+                {
+                    options.WaitUntilStarted = true;
+                    options.StartTimeout = TimeSpan.FromSeconds(30);
+                    options.StopTimeout = TimeSpan.FromSeconds(10);
+                });
+            services.AddControllers();
         }
     }
 }
