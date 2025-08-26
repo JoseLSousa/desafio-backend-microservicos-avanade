@@ -6,6 +6,7 @@ namespace Sales.Infra.MassTransit.Sagas
     {
         public Guid CorrelationId { get; set; }
         public string CurrentState { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public string Status { get; set; } = "Pending"; // Default to Pending
+        public DateTime? Updated { get; set; }
     }
 }

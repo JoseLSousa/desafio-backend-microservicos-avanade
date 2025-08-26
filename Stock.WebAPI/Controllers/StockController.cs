@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Stock.Application.UseCases.Commands;
 using Stock.Application.UseCases.Queries;
 using Stock.Domain.Entitites;
+using Stock.Domain.Interfaces;
 
 namespace Stock.WebAPI.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    public class ItemsController(IMediator mediator) : ControllerBase
+    public class StockController(IMediator mediator) : ControllerBase
     {
         [HttpPost]
         public async Task<IActionResult> CreateItem([FromBody] CreateItemCommand command, CancellationToken cancellationToken)
@@ -36,6 +37,11 @@ namespace Stock.WebAPI.Controllers
                 return NotFound(new { Message = $"Item with ID {itemId} not found." });
 
             return Ok(response);
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetAll(IStockRepository repository, CancellationToken cancellation)
+        {
+            return Ok(await repository.GetAll(cancellation));
         }
 
     }

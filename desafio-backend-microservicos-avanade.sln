@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36212.18 d17.14
+VisualStudioVersion = 17.14.36212.18
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SalesService", "SalesService", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
@@ -22,6 +22,23 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sales.WebAPI", "Sales.WebAPI\Sales.WebAPI.csproj", "{8A3C9802-14BD-4B51-B6AE-1AF76581EB2B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Stock.WebAPI", "Stock.WebAPI\Stock.WebAPI.csproj", "{9F1351EB-7F68-4AE2-B024-F8E8A1154854}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		docker-compose.yaml = docker-compose.yaml
+		LICENSE.txt = LICENSE.txt
+		observability\otel-collector-config.yml = observability\otel-collector-config.yml
+		observability\prometheus.yml = observability\prometheus.yml
+		observability\promtail-config.yml = observability\promtail-config.yml
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kong", "kong", "{413C1C84-AA1E-4445-AE8D-0E2E429F7E55}"
+	ProjectSection(SolutionItems) = preProject
+		kong.yml = kong.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
