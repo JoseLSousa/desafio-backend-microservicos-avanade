@@ -37,7 +37,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "kong", "kong", "{413C1C84-AA1E-4445-AE8D-0E2E429F7E55}"
 	ProjectSection(SolutionItems) = preProject
-		kong.yml = kong.yml
+		kong\kong.yml = kong\kong.yml
 	EndProjectSection
 EndProject
 Global

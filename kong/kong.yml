@@ -3,29 +3,16 @@ _transform: false
 
 services:
   - name: sales-service
-    url: http://sales_service:8080
+    url: http://salesService:5001
     routes:
-      - name: sales-route
-        paths:
-          - /sales
-        strip_path: true
-        path_handling: v0
-        preserve_host: false
-        protocols:
-          - http
-          - https
-        regex_priority: 0
-
+     - name: sales-service-route
+       paths:
+        - /sales
+       strip_path: true
   - name: stock-service
-    url: http://stock_service:8080
+    url: http://stockService:5002
     routes:
-      - name: stock-route
-        paths:
-          - /stock
-        strip_path: true
-        path_handling: v0
-        preserve_host: false
-        protocols:
-          - http
-          - https
-        regex_priority: 0
+     - name: stock-service-route
+       paths:
+        - /stock
+       strip_path: true
