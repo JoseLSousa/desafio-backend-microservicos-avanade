@@ -1,11 +1,9 @@
 ﻿using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Stock.Application.Events;
 using Sales.Application.Events;
+using Stock.Application.Events;
 using Stock.Infra.Messaging.Consumers;
-using System;
 using System.Diagnostics;
 
 namespace Stock.Infra.MassTransit
@@ -25,7 +23,7 @@ namespace Stock.Infra.MassTransit
                     var hostName = configuration["RabbitMQ:HostName"];
                     var userName = configuration["RabbitMQ:UserName"];
                     var password = configuration["RabbitMQ:Password"];
-                    
+
                     // Ensure we have valid configuration
                     if (string.IsNullOrEmpty(hostName))
                     {
@@ -43,29 +41,29 @@ namespace Stock.Infra.MassTransit
                     {
                         e.ConfigureConsumer<CheckStockConsumer>(context);
                         e.UseMessageRetry(r => r.Intervals(100, 500, 1000));
-                        
+
                         // Critical: Add binding directly to the queue
                         e.Bind("stock-check", x => { });
-                        
+
                         // Set prefetch count to ensure messages are processed one at a time
                         e.PrefetchCount = 16;
-                        
+
                         // Add error handling
                         e.UseMessageRetry(r => r.Immediate(5));
-                        
+
                         // Configure concurrent message limit
                         e.ConcurrentMessageLimit = 1;
                     });
-                    
+
                     // Add observers for message tracking
                     cfg.ConnectSendObserver(new SendObserver());
                     cfg.ConnectPublishObserver(new PublishObserver());
-                    
+
                     // Explicitly configure message types with proper exchange names
                     cfg.Message<ItemCreatedEvent>(m => m.SetEntityName("stock-item-created"));
                     cfg.Message<CheckStockEvent>(m => m.SetEntityName("stock-check"));
                     cfg.Message<StockCheckedEvent>(m => m.SetEntityName("stock-checked"));
-                    
+
                     // Configure endpoints based on conventions
                     cfg.ConfigureEndpoints(context);
                 });
